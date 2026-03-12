@@ -9,6 +9,9 @@ import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { ModalTestimonio } from '@/components/ModalTestimonio'
+import { MensajesAliento } from '@/components/MensajesAliento'
+import { BotonCompartir } from '@/components/BotonCompartir'
 
 interface PeticionConCiudades extends Peticion {
   ciudadesIntercesores?: string[]
@@ -18,6 +21,7 @@ export default function MisPeticionesPage() {
   const [peticiones, setPeticiones] = useState<PeticionConCiudades[]>([])
   const [cargando, setCargando] = useState(true)
   const [autenticado, setAutenticado] = useState(false)
+  const [peticionParaCerrar, setPeticionParaCerrar] = useState<string | null>(null)
 
   useEffect(() => {
     async function cargar() {
@@ -66,19 +70,11 @@ export default function MisPeticionesPage() {
     cargar()
   }, [])
 
-  async function cerrarPeticion(id: string) {
-    const { error } = await supabase
-      .from('peticiones')
-      .update({ activa: false })
-      .eq('id', id)
-
-    if (error) {
-      toast.error('No se pudo cerrar la petición')
-      return
-    }
-
-    setPeticiones((prev) => prev.map((p) => p.id === id ? { ...p, activa: false } : p))
-    toast.success('Petición marcada como respondida. ¡Gloria a Dios! 🙌')
+  function onConfirmarTestimonio(id: string, testimonio: string | null) {
+    setPeticiones((prev) =>
+      prev.map((p) => p.id === id ? { ...p, activa: false, testimonio } : p)
+    )
+    setPeticionParaCerrar(null)
   }
 
   if (cargando) {
@@ -111,6 +107,15 @@ export default function MisPeticionesPage() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
+      {/* Modal testimonio */}
+      {peticionParaCerrar && (
+        <ModalTestimonio
+          peticionId={peticionParaCerrar}
+          onConfirmar={onConfirmarTestimonio}
+          onCancelar={() => setPeticionParaCerrar(null)}
+        />
+      )}
+
       {/* Header */}
       <div className="text-center">
         <p className="text-4xl mb-2">📖</p>
@@ -144,7 +149,11 @@ export default function MisPeticionesPage() {
           </h2>
           <div className="space-y-3">
             {peticionesActivas.map((p) => (
-              <PeticionMia key={p.id} peticion={p} onCerrar={cerrarPeticion} />
+              <PeticionMia
+                key={p.id}
+                peticion={p}
+                onCerrar={(id) => setPeticionParaCerrar(id)}
+              />
             ))}
           </div>
         </section>
@@ -158,7 +167,11 @@ export default function MisPeticionesPage() {
           </h2>
           <div className="space-y-3 opacity-60">
             {peticionesCerradas.map((p) => (
-              <PeticionMia key={p.id} peticion={p} onCerrar={cerrarPeticion} />
+              <PeticionMia
+                key={p.id}
+                peticion={p}
+                onCerrar={(id) => setPeticionParaCerrar(id)}
+              />
             ))}
           </div>
         </section>
@@ -215,10 +228,21 @@ function PeticionMia({
         </div>
 
         {/* Contenido */}
-        <p className="text-slate-700 text-sm mb-3">"{peticion.contenido}"</p>
+        <p className="text-slate-700 text-sm mb-3">&ldquo;{peticion.contenido}&rdquo;</p>
 
-        {/* Oraciones */}
-        <div className="flex items-center justify-between">
+        {/* Testimonio si existe */}
+        {peticion.testimonio && (
+          <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-3">
+            <p className="text-xs font-semibold text-amber-700 mb-1">✨ Tu testimonio</p>
+            <p className="text-xs text-slate-600 italic">&ldquo;{peticion.testimonio}&rdquo;</p>
+          </div>
+        )}
+
+        {/* Mensajes de aliento */}
+        <MensajesAliento peticionId={peticion.id} />
+
+        {/* Oraciones + acciones */}
+        <div className="flex items-center justify-between mt-3">
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-base">🙏</span>
@@ -243,6 +267,11 @@ function PeticionMia({
               ✅ Respondida
             </Button>
           )}
+        </div>
+
+        {/* Compartir */}
+        <div className="mt-3 pt-3 border-t border-slate-100">
+          <BotonCompartir peticionId={peticion.id} />
         </div>
       </CardContent>
     </Card>

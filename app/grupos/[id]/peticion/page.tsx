@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase, CIUDADES_ONTARIO, CATEGORIAS, Grupo } from '@/lib/supabase'
+import { useParams, useRouter } from 'next/navigation'
+import { supabase, CIUDADES_ONTARIO, CATEGORIAS } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,105 +14,131 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import Link from 'next/link'
 import { toast } from 'sonner'
 
-export default function NuevaPeticionPage() {
+export default function PeticionGrupoPage() {
+  const { id: grupoId } = useParams<{ id: string }>()
   const router = useRouter()
+
   const [contenido, setContenido] = useState('')
   const [categoria, setCategoria] = useState('otro')
   const [ciudad, setCiudad] = useState('')
   const [esAnonima, setEsAnonima] = useState(true)
-  const [grupoId, setGrupoId] = useState<string>('ninguno')
-  const [misGrupos, setMisGrupos] = useState<Grupo[]>([])
+  const [esMiembro, setEsMiembro] = useState<boolean | null>(null)
+  const [nombreGrupo, setNombreGrupo] = useState('')
   const [enviando, setEnviando] = useState(false)
 
-  const caracteresRestantes = 500 - contenido.length
-
   useEffect(() => {
-    async function cargarGrupos() {
+    async function verificar() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data } = await supabase
+      if (!user) {
+        setEsMiembro(false)
+        return
+      }
+
+      const { data: grupo } = await supabase
+        .from('grupos')
+        .select('nombre')
+        .eq('id', grupoId)
+        .maybeSingle()
+
+      const { data: membresia } = await supabase
         .from('grupo_miembros')
-        .select('grupos(id, nombre, emoji_portada)')
+        .select('id')
+        .eq('grupo_id', grupoId)
         .eq('perfil_id', user.id)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setMisGrupos(((data || []).map((m: any) => m.grupos).filter(Boolean)) as Grupo[])
+        .maybeSingle()
+
+      setNombreGrupo(grupo?.nombre || '')
+      setEsMiembro(!!membresia)
     }
-    cargarGrupos()
-  }, [])
+    verificar()
+  }, [grupoId])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-
     if (contenido.trim().length < 10) {
       toast.error('Tu petición debe tener al menos 10 caracteres')
       return
     }
 
     const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      toast.error('Necesitas iniciar sesión para compartir una petición', {
-        action: {
-          label: 'Iniciar Sesión',
-          onClick: () => router.push('/auth'),
-        },
-      })
-      return
-    }
+    if (!user) return
 
     setEnviando(true)
     try {
-      const { data: peticion, error } = await supabase.from('peticiones').insert({
-        autor_id: user.id,
-        contenido: contenido.trim(),
-        categoria,
-        ciudad: ciudad || null,
-        es_anonima: esAnonima,
-        expira_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      }).select('id').single()
+      const { data: peticion, error } = await supabase
+        .from('peticiones')
+        .insert({
+          autor_id: user.id,
+          contenido: contenido.trim(),
+          categoria,
+          ciudad: ciudad || null,
+          es_anonima: esAnonima,
+          expira_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .select('id')
+        .single()
 
       if (error) throw error
 
-      if (grupoId !== 'ninguno' && peticion) {
-        await supabase.from('grupo_peticiones').insert({
-          grupo_id: grupoId,
-          peticion_id: peticion.id,
-        })
-      }
+      await supabase.from('grupo_peticiones').insert({
+        grupo_id: grupoId,
+        peticion_id: peticion.id,
+      })
 
-      toast.success('¡Tu petición fue compartida! La comunidad orará por ti 🙏')
-      router.push('/')
+      toast.success('¡Petición compartida con el grupo! 🙏')
+      router.push(`/grupos/${grupoId}`)
     } catch {
-      toast.error('No se pudo enviar tu petición. Intenta de nuevo.')
+      toast.error('No se pudo enviar. Intenta de nuevo.')
     } finally {
       setEnviando(false)
     }
   }
 
+  if (esMiembro === null) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto" />
+      </div>
+    )
+  }
+
+  if (!esMiembro) {
+    return (
+      <div className="max-w-lg mx-auto text-center py-16 space-y-4">
+        <p className="text-5xl">🔒</p>
+        <h1 className="text-2xl font-bold text-slate-800">Acceso restringido</h1>
+        <p className="text-slate-500">Debes ser miembro del grupo para publicar peticiones.</p>
+        <Link href={`/grupos/${grupoId}`}>
+          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">Ver grupo</Button>
+        </Link>
+      </div>
+    )
+  }
+
+  const caracteresRestantes = 500 - contenido.length
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
-      {/* Header */}
       <div className="text-center">
-        <p className="text-4xl mb-2">✉️</p>
+        <p className="text-4xl mb-2">🙏</p>
         <h1 className="text-2xl font-bold text-slate-800">Compartir Petición</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Tu comunidad hispana en Ontario orará por ti
-        </p>
+        {nombreGrupo && (
+          <p className="text-slate-500 text-sm mt-1">en el grupo "{nombreGrupo}"</p>
+        )}
       </div>
 
-      {/* Formulario */}
       <Card className="border border-indigo-100 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base text-slate-700">¿Por qué necesitas oración?</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Texto de la petición */}
             <div>
               <Textarea
-                placeholder="Cuéntanos tu necesidad... Por ejemplo: 'Estoy pasando por un momento muy difícil con mi familia y necesito paz y sabiduría.'"
+                placeholder="Cuéntanos tu necesidad..."
                 value={contenido}
                 onChange={(e) => setContenido(e.target.value)}
                 maxLength={500}
@@ -127,9 +153,7 @@ export default function NuevaPeticionPage() {
 
             {/* Categoría */}
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Categoría
-              </label>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Categoría</label>
               <div className="flex flex-wrap gap-2">
                 {CATEGORIAS.map((cat) => (
                   <button
@@ -151,7 +175,7 @@ export default function NuevaPeticionPage() {
             {/* Ciudad */}
             <div>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
-                Ciudad en Ontario (opcional)
+                Ciudad (opcional)
               </label>
               <Select value={ciudad} onValueChange={(v) => setCiudad(v ?? '')}>
                 <SelectTrigger className="border-indigo-200">
@@ -159,9 +183,7 @@ export default function NuevaPeticionPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {CIUDADES_ONTARIO.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -172,7 +194,7 @@ export default function NuevaPeticionPage() {
               <label className="flex items-center gap-3 cursor-pointer">
                 <div
                   onClick={() => setEsAnonima(!esAnonima)}
-                  className={`w-11 h-6 rounded-full transition-colors relative ${
+                  className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${
                     esAnonima ? 'bg-indigo-600' : 'bg-slate-300'
                   }`}
                 >
@@ -184,71 +206,38 @@ export default function NuevaPeticionPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700">
-                    {esAnonima ? '🔒 Publicar de forma anónima' : '👤 Publicar con mi nombre'}
+                    {esAnonima ? '🔒 Anónimo en el grupo' : '👤 Con mi nombre'}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {esAnonima
-                      ? 'Nadie verá quién eres, solo tu petición'
-                      : 'Tu nombre aparecerá junto a la petición'}
+                    {esAnonima ? 'Los miembros no verán quién eres' : 'Tu nombre será visible'}
                   </p>
                 </div>
               </label>
             </div>
 
-            {/* Preview */}
             {contenido.length >= 10 && (
               <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
                 <p className="text-xs font-semibold text-indigo-600 mb-2">Vista previa:</p>
-                <p className="text-slate-700 text-sm italic">"{contenido}"</p>
+                <p className="text-slate-700 text-sm italic">&ldquo;{contenido}&rdquo;</p>
                 <div className="flex gap-2 mt-2 flex-wrap">
                   <Badge className="text-xs bg-indigo-100 text-indigo-700">
                     {CATEGORIAS.find((c) => c.valor === categoria)?.emoji}{' '}
                     {CATEGORIAS.find((c) => c.valor === categoria)?.etiqueta}
                   </Badge>
-                  {ciudad && <Badge variant="outline" className="text-xs">📍 {ciudad}</Badge>}
-                  <Badge variant="outline" className="text-xs">
-                    {esAnonima ? '🔒 Anónimo' : '👤 Con nombre'}
-                  </Badge>
                 </div>
-              </div>
-            )}
-
-            {/* Grupo (opcional) */}
-            {misGrupos.length > 0 && (
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">
-                  Compartir también en un grupo (opcional)
-                </label>
-                <Select value={grupoId} onValueChange={(v) => setGrupoId(v ?? 'ninguno')}>
-                  <SelectTrigger className="border-indigo-200">
-                    <SelectValue placeholder="Solo en el feed principal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ninguno">Solo en el feed principal</SelectItem>
-                    {misGrupos.map((g) => (
-                      <SelectItem key={g.id} value={g.id}>
-                        {g.emoji_portada} {g.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             )}
 
             <Button
               type="submit"
               disabled={enviando || contenido.trim().length < 10}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 text-base"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3"
             >
-              {enviando ? 'Enviando...' : '🙏 Compartir mi petición'}
+              {enviando ? 'Enviando...' : '🙏 Compartir en el grupo'}
             </Button>
           </form>
         </CardContent>
       </Card>
-
-      <p className="text-center text-xs text-slate-400">
-        Tu petición estará activa por 7 días y será visible para la comunidad hispana de Ontario
-      </p>
     </div>
   )
 }

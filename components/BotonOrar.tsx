@@ -18,6 +18,7 @@ export function BotonOrar({ peticionId, totalInicial, onOro, size = 'default' }:
   const [yaOro, setYaOro] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [animando, setAnimando] = useState(false)
+  const [mensaje, setMensaje] = useState('')
 
   async function handleOrar() {
     if (yaOro || cargando) return
@@ -39,6 +40,7 @@ export function BotonOrar({ peticionId, totalInicial, onOro, size = 'default' }:
       const { data, error } = await supabase.rpc('incrementar_oracion', {
         p_peticion_id: peticionId,
         p_intercesor_id: user.id,
+        p_mensaje: size === 'large' && mensaje.trim() ? mensaje.trim() : null,
       })
 
       if (error) throw error
@@ -64,8 +66,29 @@ export function BotonOrar({ peticionId, totalInicial, onOro, size = 'default' }:
 
   if (size === 'large') {
     return (
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-4 w-full max-w-sm">
         <ContadorOraciones total={total} animando={animando} size="large" />
+
+        {!yaOro && (
+          <div className="w-full">
+            <textarea
+              value={mensaje}
+              onChange={(e) => setMensaje(e.target.value)}
+              placeholder="Opcional: deja un mensaje de aliento para quien oró..."
+              maxLength={200}
+              rows={2}
+              className="w-full border border-indigo-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-indigo-50/50"
+            />
+            <p className="text-xs text-slate-400 text-right mt-0.5">{mensaje.length}/200</p>
+          </div>
+        )}
+
+        {yaOro && mensaje.trim() && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center w-full">
+            <p className="text-xs text-green-700">💌 Tu mensaje de aliento fue enviado</p>
+          </div>
+        )}
+
         <Button
           onClick={handleOrar}
           disabled={yaOro || cargando}
