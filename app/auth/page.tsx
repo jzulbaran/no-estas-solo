@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 
 export default function AuthPage() {
   const router = useRouter()
-  const [modo, setModo] = useState<'login' | 'registro'>('login')
+  const [modo, setModo] = useState<'login' | 'registro' | 'reset'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [nombre, setNombre] = useState('')
@@ -21,6 +21,17 @@ export default function AuthPage() {
     setCargando(true)
 
     try {
+      if (modo === 'reset') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/update-password`,
+        })
+        if (error) throw error
+        setEmailEnviado(true)
+        toast.success('¡Revisa tu email para restablecer tu contraseña!')
+        setCargando(false)
+        return
+      }
+
       if (modo === 'registro') {
         const { error } = await supabase.auth.signUp({
           email,
@@ -75,19 +86,21 @@ export default function AuthPage() {
       <div className="text-center">
         <p className="text-4xl mb-2">🕊️</p>
         <h1 className="text-2xl font-bold text-slate-800">
-          {modo === 'login' ? 'Iniciar Sesión' : 'Unirse a la Comunidad'}
+          {modo === 'login' ? 'Iniciar Sesión' : modo === 'registro' ? 'Unirse a la Comunidad' : 'Recuperar Contraseña'}
         </h1>
         <p className="text-slate-500 text-sm mt-1">
           {modo === 'login'
             ? 'Bienvenido/a de vuelta'
-            : 'Únete a la red de oración hispana en Ontario'}
+            : modo === 'registro'
+            ? 'Únete a la red de oración hispana en Ontario'
+            : 'Te enviaremos un enlace a tu email'}
         </p>
       </div>
 
       <Card className="border border-indigo-100 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base text-slate-700">
-            {modo === 'login' ? 'Acceder a tu cuenta' : 'Crear cuenta gratuita'}
+            {modo === 'login' ? 'Acceder a tu cuenta' : modo === 'registro' ? 'Crear cuenta gratuita' : 'Restablecer contraseña'}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -122,18 +135,20 @@ export default function AuthPage() {
               />
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Contraseña</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500"
-              />
-            </div>
+            {modo !== 'reset' && (
+              <div>
+                <label className="text-sm font-medium text-slate-700 block mb-1">Contraseña</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            )}
 
             <Button
               type="submit"
@@ -144,21 +159,39 @@ export default function AuthPage() {
                 ? 'Cargando...'
                 : modo === 'login'
                 ? '🔓 Iniciar Sesión'
-                : '🙏 Unirme a la comunidad'}
+                : modo === 'registro'
+                ? '🙏 Unirme a la comunidad'
+                : '📧 Enviar enlace de recuperación'}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <div className="text-center">
-        <button
-          onClick={() => setModo(modo === 'login' ? 'registro' : 'login')}
-          className="text-sm text-indigo-600 hover:text-indigo-800 underline"
-        >
-          {modo === 'login'
-            ? '¿No tienes cuenta? Regístrate aquí'
-            : '¿Ya tienes cuenta? Inicia sesión'}
-        </button>
+      <div className="text-center space-y-2">
+        {modo === 'login' && (
+          <>
+            <button
+              onClick={() => setModo('registro')}
+              className="block w-full text-sm text-indigo-600 hover:text-indigo-800 underline"
+            >
+              ¿No tienes cuenta? Regístrate aquí
+            </button>
+            <button
+              onClick={() => setModo('reset')}
+              className="block w-full text-sm text-slate-400 hover:text-slate-600 underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </>
+        )}
+        {(modo === 'registro' || modo === 'reset') && (
+          <button
+            onClick={() => setModo('login')}
+            className="text-sm text-indigo-600 hover:text-indigo-800 underline"
+          >
+            ¿Ya tienes cuenta? Inicia sesión
+          </button>
+        )}
       </div>
 
       <p className="text-center text-xs text-slate-400">

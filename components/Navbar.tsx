@@ -1,14 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import type { User } from '@supabase/supabase-js'
 
 const navLinks = [
   { href: '/', label: 'Inicio', emoji: '🏠' },
   { href: '/orar', label: 'Orar', emoji: '🙏' },
   { href: '/nueva-peticion', label: 'Pedir Oración', emoji: '✉️' },
   { href: '/mis-peticiones', label: 'Mis Peticiones', emoji: '📖' },
-  { href: '/grupos', label: 'Grupos', emoji: '👥' },
   { href: '/devocionales', label: 'Devocionales', emoji: '📜' },
   { href: '/testimonios', label: 'Testimonios', emoji: '✨' },
   { href: '/comunidad', label: 'Comunidad', emoji: '🌎' },
@@ -16,6 +18,21 @@ const navLinks = [
 
 export function Navbar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
 
   return (
     <header className="bg-indigo-900 text-white shadow-lg sticky top-0 z-50">
@@ -44,6 +61,25 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {user ? (
+              <button
+                onClick={handleLogout}
+                className="px-3 py-2 rounded-md text-sm font-medium text-indigo-200 hover:bg-indigo-800 hover:text-white transition-colors"
+              >
+                Salir
+              </button>
+            ) : (
+              <Link
+                href="/auth"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  pathname === '/auth'
+                    ? 'bg-indigo-700 text-white'
+                    : 'text-indigo-200 hover:bg-indigo-800 hover:text-white'
+                }`}
+              >
+                Iniciar Sesión
+              </Link>
+            )}
           </nav>
         </div>
 
@@ -63,6 +99,27 @@ export function Navbar() {
               <span>{link.label}</span>
             </Link>
           ))}
+          {user ? (
+            <button
+              onClick={handleLogout}
+              className="flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md text-xs font-medium text-indigo-200 hover:bg-indigo-800 transition-colors"
+            >
+              <span className="text-base">🚪</span>
+              <span>Salir</span>
+            </button>
+          ) : (
+            <Link
+              href="/auth"
+              className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                pathname === '/auth'
+                  ? 'bg-indigo-700 text-white'
+                  : 'text-indigo-200 hover:bg-indigo-800'
+              }`}
+            >
+              <span className="text-base">🔓</span>
+              <span>Entrar</span>
+            </Link>
+          )}
         </nav>
       </div>
     </header>
