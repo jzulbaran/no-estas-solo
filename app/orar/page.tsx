@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { getVersiculoIntercesion } from '@/lib/versiculos-intercesion'
 
 export default function OrarPage() {
   const [peticion, setPeticion] = useState<Peticion | null>(null)
   const [cargando, setCargando] = useState(true)
   const [oracionesHoy, setOracionesHoy] = useState(0)
   const [yaOro, setYaOro] = useState(false)
+  const [versiculoIntercesion, setVersiculoIntercesion] = useState<{ ref: string; texto: string } | null>(null)
 
   const cargarPeticion = useCallback(async () => {
     setCargando(true)
@@ -63,6 +65,17 @@ export default function OrarPage() {
 
     setCargando(false)
   }, [])
+
+  // Cargar versículo de intercesión cuando cambia la petición
+  useEffect(() => {
+    if (!peticion) return
+    setVersiculoIntercesion(null)
+    const refId = getVersiculoIntercesion(peticion.categoria)
+    fetch(`/api/biblia/versiculo?id=${refId}`)
+      .then(r => r.json())
+      .then(data => { if (!data.error) setVersiculoIntercesion(data) })
+      .catch(() => {})
+  }, [peticion])
 
   useEffect(() => {
     cargarPeticion()
@@ -161,6 +174,21 @@ export default function OrarPage() {
             </CardContent>
           </Card>
 
+          {/* Versículo de intercesión */}
+          {versiculoIntercesion && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+              <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">
+                📖 Ora según la Palabra
+              </p>
+              <p className="text-sm text-slate-700 italic leading-relaxed">
+                "{versiculoIntercesion.texto}"
+              </p>
+              <p className="text-xs font-bold text-indigo-700 mt-2">
+                — {versiculoIntercesion.ref}
+              </p>
+            </div>
+          )}
+
           {/* Botón de orar grande */}
           <div className="text-center py-4">
             <BotonOrar
@@ -199,13 +227,6 @@ export default function OrarPage() {
         </div>
       )}
 
-      {/* Mensaje motivador */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-        <p className="text-amber-800 text-sm">
-          "Por eso os digo que todo lo que pidiereis orando, creed que lo recibiréis, y os vendrá."
-        </p>
-        <p className="text-amber-600 text-xs mt-1 font-medium">— Marcos 11:24</p>
-      </div>
     </div>
   )
 }
