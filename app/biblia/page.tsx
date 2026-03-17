@@ -15,8 +15,8 @@ export default async function BibliaPage() {
     <div className="space-y-6">
       <div className="text-center">
         <p className="text-4xl mb-2">📖</p>
-        <h1 className="text-2xl font-bold text-slate-800">Biblia RVR1960</h1>
-        <p className="text-slate-500 text-sm mt-1">Reina-Valera 1960</p>
+        <h1 className="text-2xl font-bold text-slate-800">Biblia</h1>
+        <p className="text-slate-500 text-sm mt-1">Nueva Traducción Viviente</p>
       </div>
 
       {/* Buscador */}
