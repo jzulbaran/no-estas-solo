@@ -1,4 +1,6 @@
 import { getCapitulo, getCapitulos } from '@/lib/bible-api'
+import { createClient } from '@/lib/supabase'
+import { CATEGORIAS_DEVOCIONAL } from '@/lib/supabase'
 import Link from 'next/link'
 
 interface Props {
@@ -18,6 +20,18 @@ export default async function CapituloPage({ params }: Props) {
   } catch {
     capitulo = null
   }
+
+  // Buscar devocionales de la comunidad sobre este capítulo
+  const supabase = createClient()
+  const refBase = capitulo?.reference ?? '' // ej: "Juan 3"
+  const { data: devocionales } = refBase
+    ? await supabase
+        .from('devocionales')
+        .select('id, titulo, versiculo_ref, contenido, total_amenes, categoria, perfiles(nombre_display)')
+        .ilike('versiculo_ref', `${refBase}%`)
+        .order('total_amenes', { ascending: false })
+        .limit(5)
+    : { data: [] }
 
   if (!capitulo) {
     return (
@@ -61,6 +75,52 @@ export default async function CapituloPage({ params }: Props) {
       <div className="bg-white border border-indigo-100 rounded-2xl p-5 shadow-sm">
         <p className="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">{texto}</p>
       </div>
+
+      {/* Devocionales de la comunidad */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+            📜 Devocionales sobre este capítulo
+          </h2>
+          <Link
+            href={`/devocionales/nuevo`}
+            className="text-xs text-amber-600 hover:underline font-medium"
+          >
+            + Escribir uno
+          </Link>
+        </div>
+
+        {devocionales && devocionales.length > 0 ? (
+          devocionales.map((d) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const autor = (Array.isArray(d.perfiles) ? (d.perfiles[0] as any)?.nombre_display : (d.perfiles as any)?.nombre_display) ?? 'Anónimo'
+            const categoria = CATEGORIAS_DEVOCIONAL.find((c) => c.valor === d.categoria)
+            return (
+              <Link key={d.id} href={`/devocionales/${d.id}`} className="block">
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 hover:shadow-sm transition-shadow">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs">{categoria?.emoji}</span>
+                    <span className="text-xs font-bold text-amber-700">{d.versiculo_ref}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-slate-800 mb-1">{d.titulo}</p>
+                  <p className="text-xs text-slate-500 line-clamp-2">{d.contenido}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-slate-400">— {autor}</span>
+                    <span className="text-xs text-amber-600">🙌 {d.total_amenes} Amén</span>
+                  </div>
+                </div>
+              </Link>
+            )
+          })
+        ) : (
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-center">
+            <p className="text-sm text-slate-500">Nadie ha escrito sobre este capítulo aún.</p>
+            <Link href="/devocionales/nuevo" className="text-xs text-amber-600 hover:underline mt-1 block font-medium">
+              ¡Sé el primero! →
+            </Link>
+          </div>
+        )}
+      </section>
 
       {/* Navegación entre capítulos */}
       <div className="flex justify-between gap-4">
