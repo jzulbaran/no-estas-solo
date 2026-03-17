@@ -1,4 +1,4 @@
-const BIBLE_ID = '592420522e16049f-01' // Reina Valera 1909
+const BIBLE_ID = '826f63861180e056-01' // Nueva Traducción Viviente
 const BASE = 'https://rest.api.bible/v1'
 
 async function apiFetch(path: string, revalidate = 3600) {

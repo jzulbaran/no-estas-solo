@@ -4,7 +4,7 @@ export type VersiculoDia = {
 }
 
 export async function getVersiculoDelDia(): Promise<VersiculoDia> {
-  const BIBLE_ID = '592420522e16049f-01' // Reina Valera 1909
+  const BIBLE_ID = '826f63861180e056-01' // Nueva Traducción Viviente
 
   try {
     const res = await fetch(
