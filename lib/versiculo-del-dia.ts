@@ -4,11 +4,11 @@ export type VersiculoDia = {
 }
 
 export async function getVersiculoDelDia(): Promise<VersiculoDia> {
-  const BIBLE_ID = '592420522e16049f-01' // RVR1960
+  const BIBLE_ID = '592420522e16049f-01' // Reina Valera 1909
 
   try {
     const res = await fetch(
-      `https://api.scripture.api.bible/v1/bibles/${BIBLE_ID}/verses/day`,
+      `https://rest.api.bible/v1/bibles/${BIBLE_ID}/verses/day`,
       {
         headers: { 'api-key': process.env.BIBLE_API_KEY! },
         next: { revalidate: 86400 }, // cachea 24 horas

@@ -1,5 +1,5 @@
-const BIBLE_ID = '592420522e16049f-01' // RVR1960
-const BASE = 'https://api.scripture.api.bible/v1'
+const BIBLE_ID = '592420522e16049f-01' // Reina Valera 1909
+const BASE = 'https://rest.api.bible/v1'
 
 async function apiFetch(path: string, revalidate = 3600) {
   const res = await fetch(`${BASE}${path}`, {
