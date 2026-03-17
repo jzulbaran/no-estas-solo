@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { BuscadorVersiculo } from '@/components/BuscadorVersiculo'
 import { toast } from 'sonner'
 
 export default function NuevoDevocionalPage() {
@@ -150,6 +151,17 @@ export default function NuevoDevocionalPage() {
               <label className="text-sm font-medium text-amber-800 block">
                 📖 Versículo bíblico *
               </label>
+
+              {/* Buscador */}
+              <BuscadorVersiculo
+                modo="form"
+                onSeleccionar={(r) => {
+                  setVersiculoRef(r.ref)
+                  setVersiculoTexto(r.texto)
+                }}
+              />
+
+              {/* Campos manuales */}
               <input
                 type="text"
                 value={versiculoRef}
