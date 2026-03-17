@@ -10,11 +10,9 @@ const navLinks = [
   { href: '/', label: 'Inicio', emoji: '🏠' },
   { href: '/orar', label: 'Orar', emoji: '🙏' },
   { href: '/nueva-peticion', label: 'Pedir Oración', emoji: '✉️' },
-  { href: '/mis-peticiones', label: 'Mis Peticiones', emoji: '📖' },
+  { href: '/mis-peticiones', label: 'Mis Peticiones', emoji: '📋' },
   { href: '/biblia', label: 'Biblia', emoji: '📖' },
   { href: '/devocionales', label: 'Devocionales', emoji: '📜' },
-  { href: '/testimonios', label: 'Testimonios', emoji: '✨' },
-  { href: '/comunidad', label: 'Comunidad', emoji: '🌎' },
 ]
 
 export function Navbar() {

@@ -5,7 +5,9 @@ import { VersiculoDelDia } from '@/components/VersiculoDelDia'
 import { getVersiculoDelDia } from '@/lib/versiculo-del-dia'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Peticion } from '@/lib/supabase'
+import { Peticion, CATEGORIAS } from '@/lib/supabase'
+import { formatDistanceToNow } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 async function getPeticionesActivas(): Promise<Peticion[]> {
   const supabase = createClient()
@@ -24,6 +26,18 @@ async function getPeticionesActivas(): Promise<Peticion[]> {
   return (data as Peticion[]) || []
 }
 
+async function getTestimoniosRecientes() {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('peticiones')
+    .select('id, contenido, categoria, ciudad, total_oraciones, testimonio, created_at')
+    .eq('activa', false)
+    .not('testimonio', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(3)
+  return data || []
+}
+
 async function getEstadisticas() {
   const supabase = createClient()
   const { data } = await supabase.rpc('estadisticas_ontario')
@@ -31,10 +45,11 @@ async function getEstadisticas() {
 }
 
 export default async function HomePage() {
-  const [peticiones, estadisticas, versiculo] = await Promise.all([
+  const [peticiones, estadisticas, versiculo, testimonios] = await Promise.all([
     getPeticionesActivas(),
     getEstadisticas(),
     getVersiculoDelDia(),
+    getTestimoniosRecientes(),
   ])
 
   return (
@@ -88,6 +103,49 @@ export default async function HomePage() {
         </div>
         <FeedPeticiones initialPeticiones={peticiones} />
       </section>
+
+      {/* Testimonios recientes */}
+      {testimonios.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+              ✨ Oraciones Respondidas
+            </h2>
+            <Link href="/testimonios" className="text-xs text-indigo-600 hover:underline">
+              Ver todos →
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {testimonios.map((t) => {
+              const categoria = CATEGORIAS.find((c) => c.valor === t.categoria)
+              return (
+                <Link key={t.id} href={`/peticion/${t.id}`} className="block">
+                  <div className="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-3 border-b border-amber-100">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs">{categoria?.emoji || '🙏'}</span>
+                        <span className="text-xs font-medium text-amber-700">{categoria?.etiqueta || 'Otro'}</span>
+                        {t.ciudad && <span className="text-xs text-slate-400">· 📍 {t.ciudad}</span>}
+                      </div>
+                      <p className="text-slate-500 text-xs italic line-clamp-1">&ldquo;{t.contenido}&rdquo;</p>
+                    </div>
+                    <div className="px-4 py-3">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">✨ Testimonio</p>
+                      <p className="text-slate-700 text-sm line-clamp-2">&ldquo;{t.testimonio}&rdquo;</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-indigo-600">🙏 {t.total_oraciones} oraciones</span>
+                        <span className="text-xs text-slate-400">
+                          {formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: es })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+      )}
     </div>
   )
 }
