@@ -44,11 +44,19 @@ export default async function CapituloPage({ params }: Props) {
     )
   }
 
-  // Limpiar el texto del contenido
-  const texto = capitulo.content
-    .replace(/\[\d+\]/g, (match) => `\n${match} `) // salto antes de cada número de versículo
-    .replace(/\s+/g, ' ')
-    .trim()
+  // Parsear versículos individuales
+  type Versiculo = { numero: number; texto: string }
+  const versiculos: Versiculo[] = []
+  const partes = capitulo.content
+    .replace(/<[^>]+>/g, '')
+    .split(/\[(\d+)\]/)
+    .filter(Boolean)
+
+  for (let i = 0; i < partes.length; i += 2) {
+    const num = parseInt(partes[i])
+    const txt = (partes[i + 1] || '').replace(/\s+/g, ' ').trim()
+    if (!isNaN(num) && txt) versiculos.push({ numero: num, texto: txt })
+  }
 
   const capActualNum = capituloId.split('.').pop()
   const capActualIdx = capitulos.findIndex((c) => c.id === capituloId)
@@ -69,11 +77,25 @@ export default async function CapituloPage({ params }: Props) {
       </div>
 
       {/* Título */}
-      <h1 className="text-xl font-bold text-slate-800">{capitulo.reference}</h1>
+      <div className="text-center py-2">
+        <h1 className="text-2xl font-bold text-slate-800">{capitulo.reference}</h1>
+        <p className="text-xs text-slate-400 mt-1">Nueva Traducción Viviente</p>
+      </div>
 
       {/* Contenido */}
       <div className="bg-white border border-indigo-100 rounded-2xl p-5 shadow-sm">
-        <p className="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">{texto}</p>
+        <div className="space-y-3">
+          {versiculos.map((v) => (
+            <div key={v.numero} className="flex gap-3 group">
+              <span className="flex-shrink-0 w-6 text-right text-xs font-bold text-indigo-400 mt-1 select-none">
+                {v.numero}
+              </span>
+              <p className="text-slate-700 leading-7 text-base flex-1 group-hover:text-slate-900 transition-colors">
+                {v.texto}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Devocionales de la comunidad */}
