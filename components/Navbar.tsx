@@ -9,10 +9,10 @@ import type { User } from '@supabase/supabase-js'
 const navLinks = [
   { href: '/', label: 'Inicio', emoji: '🏠' },
   { href: '/orar', label: 'Orar', emoji: '🙏' },
-  { href: '/nueva-peticion', label: 'Pedir Oración', emoji: '✉️' },
-  { href: '/mis-peticiones', label: 'Mis Peticiones', emoji: '📋' },
+  { href: '/nueva-peticion', label: 'Pedir', emoji: '✉️' },
+  { href: '/mis-peticiones', label: 'Mis Oraciones', emoji: '📋' },
   { href: '/biblia', label: 'Biblia', emoji: '📖' },
-  { href: '/devocionales', label: 'Devocionales', emoji: '📜' },
+  { href: '/devocionales', label: 'Devoción', emoji: '📜' },
 ]
 
 export function Navbar() {
