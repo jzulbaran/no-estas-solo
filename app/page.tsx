@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase'
 import { FeedPeticiones } from '@/components/FeedPeticiones'
 import { EstadisticasVivas } from '@/components/EstadisticasVivas'
+import { VersiculoDelDia } from '@/components/VersiculoDelDia'
+import { getVersiculoDelDia } from '@/lib/versiculo-del-dia'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Peticion } from '@/lib/supabase'
@@ -29,9 +31,10 @@ async function getEstadisticas() {
 }
 
 export default async function HomePage() {
-  const [peticiones, estadisticas] = await Promise.all([
+  const [peticiones, estadisticas, versiculo] = await Promise.all([
     getPeticionesActivas(),
     getEstadisticas(),
+    getVersiculoDelDia(),
   ])
 
   return (
@@ -61,6 +64,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Versículo del Día */}
+      <VersiculoDelDia versiculo={versiculo} />
 
       {/* Estadísticas en vivo */}
       <section>
