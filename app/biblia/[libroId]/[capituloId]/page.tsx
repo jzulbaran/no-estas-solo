@@ -45,14 +45,14 @@ export default async function CapituloPage({ params }: Props) {
   }
 
   // Parsear versículos individuales
+  // split con grupo capturador produce: ['texto_antes', 'num1', 'texto1', 'num2', 'texto2', ...]
   type Versiculo = { numero: number; texto: string }
   const versiculos: Versiculo[] = []
   const partes = capitulo.content
     .replace(/<[^>]+>/g, '')
     .split(/\[(\d+)\]/)
-    .filter(Boolean)
 
-  for (let i = 0; i < partes.length; i += 2) {
+  for (let i = 1; i < partes.length; i += 2) {
     const num = parseInt(partes[i])
     const txt = (partes[i + 1] || '').replace(/\s+/g, ' ').trim()
     if (!isNaN(num) && txt) versiculos.push({ numero: num, texto: txt })
